@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Obscura — A Gothic Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500&family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#0A090C;
+    --stone:#16151A;
+    --stone-2:#201E25;
+    --bone:#D9D2C3;
+    --blood:#7A1622;
+    --blood-bright:#B0233A;
+    --gold:#9C7A2E;
+    --gold-bright:#C9A44C;
+    --line: rgba(201,164,76,0.25);
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(122,22,34,0.12), transparent 55%),
+      radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.6), transparent 60%),
+      var(--void);
+    font-family:'Cormorant Garamond', serif;
+    color:var(--bone);
+    padding:32px 16px;
+  }
+
+  /* ---- flickering ambient candle glow ---- */
+  body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    background:radial-gradient(circle at 50% 40%, rgba(176,35,58,0.06), transparent 45%);
+    animation:flicker 5s infinite ease-in-out;
+  }
+  @keyframes flicker{
+    0%, 100% { opacity:1; }
+    45% { opacity:0.75; }
+    50% { opacity:1; }
+    72% { opacity:0.85; }
+  }
+
+  .frame{
+    position:relative;
+    width:100%;
+    max-width:380px;
+    background:linear-gradient(180deg, var(--stone), var(--stone-2));
+    border:1px solid var(--line);
+    padding:26px 22px 22px;
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.6),
+      0 30px 60px -20px rgba(0,0,0,0.85),
+      0 0 60px -10px rgba(122,22,34,0.25);
+  }
+
+  /* gothic arch ornament above the frame */
+  .arch{
+    width:60px;
+    height:34px;
+    margin:0 auto 6px;
+    position:relative;
+  }
+  .arch::before, .arch::after{
+    content:'';
+    position:absolute;
+    top:0;
+    width:30px;
+    height:30px;
+    border:1.5px solid var(--gold);
+    border-bottom:none;
+    border-right:none;
+  }
+  .arch::before{
+    left:0;
+    border-radius:100% 0 0 0;
+    transform:rotate(0deg);
+  }
+  .arch::after{
+    right:0;
+    border-left:none;
+    border-right:1.5px solid var(--gold);
+    border-radius:0 100% 0 0;
+  }
+
+  .corner{
+    position:absolute;
+    width:16px; height:16px;
+    pointer-events:none;
+  }
+  .corner.tl{ top:8px; left:8px; border-top:1.5px solid var(--gold); border-left:1.5px solid var(--gold); }
+  .corner.tr{ top:8px; right:8px; border-top:1.5px solid var(--gold); border-right:1.5px solid var(--gold); }
+  .corner.bl{ bottom:8px; left:8px; border-bottom:1.5px solid var(--gold); border-left:1.5px solid var(--gold); }
+  .corner.br{ bottom:8px; right:8px; border-bottom:1.5px solid var(--gold); border-right:1.5px solid var(--gold); }
+
+  h1{
+    font-family:'UnifrakturCook', cursive;
+    text-align:center;
+    font-size:30px;
+    font-weight:700;
+    margin:0 0 18px;
+    color:var(--gold-bright);
+    letter-spacing:0.02em;
+    text-shadow:0 0 18px rgba(201,164,76,0.35);
+  }
+
+  .display{
+    background:var(--void);
+    border:1px solid var(--line);
+    padding:22px 18px 16px;
+    margin-bottom:16px;
+    text-align:right;
+    min-height:96px;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+    gap:6px;
+    position:relative;
+  }
+  .display::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    box-shadow:inset 0 0 24px rgba(122,22,34,0.18);
+    pointer-events:none;
+  }
+  .prev-op{
+    font-family:'Cormorant Garamond', serif;
+    font-size:15px;
+    color:rgba(217,210,195,0.5);
+    min-height:18px;
+    word-break:break-all;
+    letter-spacing:0.02em;
+  }
+  .current{
+    font-family:'Cinzel Decorative', serif;
+    font-size:clamp(26px, 8vw, 34px);
+    font-weight:700;
+    color:var(--bone);
+    word-break:break-all;
+    line-height:1.1;
+    text-shadow:0 0 10px rgba(217,210,195,0.15);
+  }
+
+  .keys{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:9px;
+  }
+
+  button{
+    font-family:'Cormorant Garamond', serif;
+    font-size:19px;
+    font-weight:600;
+    color:var(--bone);
+    background:linear-gradient(180deg, #221F27, #17151B);
+    border:1px solid var(--line);
+    padding:15px 0;
+    cursor:pointer;
+    transition:all .15s ease;
+    position:relative;
+    letter-spacing:0.02em;
+  }
+  button:hover{
+    border-color:var(--gold);
+    color:var(--gold-bright);
+    box-shadow:0 0 14px rgba(201,164,76,0.18);
+  }
+  button:active{ transform:translateY(1px) scale(0.98); }
+
+  button.op{
+    color:var(--gold-bright);
+    border-color:rgba(201,164,76,0.3);
+  }
+  button.op:hover{
+    background:linear-gradient(180deg, #2A2019, #1C140F);
+  }
+
+  button.func{
+    color:rgba(217,210,195,0.65);
+    font-size:15px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+  }
+
+  button.equals{
+    grid-column:span 2;
+    background:linear-gradient(180deg, var(--blood-bright), var(--blood));
+    color:var(--bone);
+    border:1px solid rgba(176,35,58,0.6);
+    font-family:'Cinzel Decorative', serif;
+    font-weight:700;
+    letter-spacing:0.04em;
+    box-shadow:0 0 18px rgba(176,35,58,0.3);
+  }
+  button.equals:hover{
+    box-shadow:0 0 28px rgba(176,35,58,0.55);
+    color:#fff;
+    border-color:var(--blood-bright);
+  }
+
+  button.zero{ grid-column:span 2; }
+
+  .sigil{
+    text-align:center;
+    margin-top:18px;
+    font-family:'Cormorant Garamond', serif;
+    font-style:italic;
+    font-size:12px;
+    color:rgba(201,164,76,0.4);
+    letter-spacing:0.08em;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    body::before{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="frame">
+  <span class="corner tl"></span><span class="corner tr"></span>
+  <span class="corner bl"></span><span class="corner br"></span>
+
+  <div class="arch"></div>
+  <h1>Obscura</h1>
+
+  <div class="display">
+    <div class="prev-op" id="prevOp">&nbsp;</div>
+    <div class="current" id="current">0</div>
+  </div>
+
+  <div class="keys">
+    <button class="func" data-action="clear">Clear</button>
+    <button class="func" data-action="back">⌫</button>
+    <button class="func" data-action="percent">%</button>
+    <button class="op" data-action="op" data-op="/">÷</button>
+
+    <button data-num="7">7</button>
+    <button data-num="8">8</button>
+    <button data-num="9">9</button>
+    <button class="op" data-action="op" data-op="*">×</button>
+
+    <button data-num="4">4</button>
+    <button data-num="5">5</button>
+    <button data-num="6">6</button>
+    <button class="op" data-action="op" data-op="-">−</button>
+
+    <button data-num="1">1</button>
+    <button data-num="2">2</button>
+    <button data-num="3">3</button>
+    <button class="op" data-action="op" data-op="+">+</button>
+
+    <button class="zero" data-num="0">0</button>
+    <button data-action="decimal">.</button>
+    <button class="equals" data-action="equals">=</button>
+  </div>
+
+  <div class="sigil">✦ enter the reckoning ✦</div>
+</div>
+
+<script>
+  const currentEl = document.getElementById('current');
+  const prevEl = document.getElementById('prevOp');
+
+  let current = '0';
+  let previous = null;
+  let operator = null;
+  let justEvaluated = false;
+
+  const opSymbol = { '+':'+', '-':'−', '*':'×', '/':'÷' };
+
+  function updateDisplay(){
+    currentEl.textContent = current;
+    prevEl.textContent = (previous !== null && operator)
+      ? `${formatNum(previous)} ${opSymbol[operator]}`
+      : '\u00A0';
+  }
+
+  function formatNum(n){
+    if (n === null || n === undefined) return '';
+    const num = parseFloat(n);
+    if (Number.isNaN(num)) return '';
+    return num.toString().length > 12 ? num.toPrecision(8) : num.toString();
+  }
+
+  function inputDigit(d){
+    if (justEvaluated){
+      current = d;
+      justEvaluated = false;
+    } else {
+      current = (current === '0') ? d : current + d;
+    }
+    updateDisplay();
+  }
+
+  function inputDecimal(){
+    if (justEvaluated){
+      current = '0.';
+      justEvaluated = false;
+      updateDisplay();
+      return;
+    }
+    if (!current.includes('.')) current += '.';
+    updateDisplay();
+  }
+
+  function chooseOperator(op){
+    if (operator !== null && previous !== null && !justEvaluated){
+      evaluate();
+    }
+    previous = current;
+    operator = op;
+    justEvaluated = false;
+    current = '0';
+    updateDisplay();
+  }
+
+  function evaluate(){
+    if (operator === null || previous === null) return;
+    const a = parseFloat(previous);
+    const b = parseFloat(current);
+    let result;
+    switch(operator){
+      case '+': result = a + b; break;
+      case '-': result = a - b; break;
+      case '*': result = a * b; break;
+      case '/': result = b === 0 ? NaN : a / b; break;
+    }
+    current = Number.isNaN(result) ? 'Forbidden' : formatNum(result);
+    previous = null;
+    operator = null;
+    justEvaluated = true;
+    updateDisplay();
+  }
+
+  function clearAll(){
+    current = '0';
+    previous = null;
+    operator = null;
+    justEvaluated = false;
+    updateDisplay();
+  }
+
+  function backspace(){
+    if (justEvaluated) { clearAll(); return; }
+    current = current.length > 1 ? current.slice(0, -1) : '0';
+    updateDisplay();
+  }
+
+  function percent(){
+    current = formatNum(parseFloat(current) / 100);
+    updateDisplay();
+  }
+
+  document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.num !== undefined){
+        inputDigit(btn.dataset.num);
+      } else if (btn.dataset.action === 'op'){
+        chooseOperator(btn.dataset.op);
+      } else if (btn.dataset.action === 'equals'){
+        evaluate();
+      } else if (btn.dataset.action === 'clear'){
+        clearAll();
+      } else if (btn.dataset.action === 'back'){
+        backspace();
+      } else if (btn.dataset.action === 'decimal'){
+        inputDecimal();
+      } else if (btn.dataset.action === 'percent'){
+        percent();
+      }
+    });
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key >= '0' && e.key <= '9') inputDigit(e.key);
+    else if (e.key === '.') inputDecimal();
+    else if (['+','-','*','/'].includes(e.key)) chooseOperator(e.key);
+    else if (e.key === 'Enter' || e.key === '=') { e.preventDefault(); evaluate(); }
+    else if (e.key === 'Backspace') backspace();
+    else if (e.key === 'Escape') clearAll();
+  });
+
+  updateDisplay();
+</script>
+
+</body>
+</html>
